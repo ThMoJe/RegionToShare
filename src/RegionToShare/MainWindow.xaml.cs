@@ -66,6 +66,14 @@ public partial class MainWindow
     public static readonly DependencyProperty BackgroundPatternProperty = DependencyProperty.Register(
         nameof(BackgroundPattern), typeof(Brush), typeof(MainWindow), new PropertyMetadata(default(Brush)));
 
+    public ImageSource? CustomImage
+    {
+        get => (ImageSource?)GetValue(CustomImageProperty);
+        set => SetValue(CustomImageProperty, value);
+    }
+    public static readonly DependencyProperty CustomImageProperty = DependencyProperty.Register(
+        nameof(CustomImage), typeof(ImageSource), typeof(MainWindow), new PropertyMetadata(null));
+
     private void OnExtendChanged(string? newValue)
     {
         if (newValue is null || !TryParseSize(newValue, out var size))
@@ -374,18 +382,22 @@ public partial class MainWindow
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.EndInit();
                 bitmap.Freeze();
-                BackgroundPattern = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                CustomImage = bitmap;
+                BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
                 Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
             }
             catch
             {
                 // Corrupt or unreadable image — fall back to default.
+                CustomImage = null;
                 Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
                 BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
             }
 
             return;
         }
+
+        CustomImage = null;
 
         // Priority 2: Exact 6-digit hex color — solid color background.
         // This intentionally produces a flat SolidColorBrush, unlike named colors
