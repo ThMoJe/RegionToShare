@@ -33,3 +33,7 @@ packages/
 FodyWeavers.xsd
 /src/Packaging/AppPackages/
 BundleArtifacts/
+
+# AI Agent Context Files
+GEMINI.md
+.agents/

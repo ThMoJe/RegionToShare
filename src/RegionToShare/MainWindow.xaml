@@ -1,4 +1,4 @@
-﻿<Window x:Class="RegionToShare.MainWindow"
+<Window x:Class="RegionToShare.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:styles="urn:TomsToolbox.Wpf.Styles"
@@ -48,6 +48,7 @@
                   Width="90" IsEditable="True" />
         <Decorator Style="{StaticResource Padding}"/>
         <TextBox Text="{Binding ThemeColor, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
+                 MouseDoubleClick="ThemeColorBox_MouseDoubleClick"
                  Width="90" />
         <Decorator Style="{StaticResource Padding}"/>
         <ComboBox SelectedItem="{Binding FramesPerSecond, Source={x:Static properties:Settings.Default}}"

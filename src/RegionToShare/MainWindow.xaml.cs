@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Configuration;
 using System.Globalization;
 using System.IO;
@@ -7,6 +7,8 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using System.Windows.Threading;
 using RegionToShare.Properties;
 using Throttle;
@@ -26,6 +28,7 @@ public partial class MainWindow
     private RecordingWindow? _recordingWindow;
 
     private POINT _debugOffset;
+    private bool _updatingThemeColor;
 
     public MainWindow()
     {
@@ -249,13 +252,24 @@ public partial class MainWindow
 
             settings.FramesPerSecond = SupportedFramesPerSecond.Contains(settings.FramesPerSecond) ? settings.FramesPerSecond : 15;
 
-            try
+            if (TryResolveImagePath(settings.ThemeColor) == null)
             {
-                ColorConverter.ConvertFromString(settings.ThemeColor);
-            }
-            catch
-            {
-                settings.ThemeColor = nameof(Colors.SteelBlue);
+                var normalized = TryNormalizeHexColor(settings.ThemeColor);
+                if (normalized != null)
+                {
+                    settings.ThemeColor = normalized;
+                }
+                else
+                {
+                    try
+                    {
+                        ColorConverter.ConvertFromString(settings.ThemeColor);
+                    }
+                    catch
+                    {
+                        settings.ThemeColor = nameof(Colors.SteelBlue);
+                    }
+                }
             }
 
             return true;
@@ -278,12 +292,115 @@ public partial class MainWindow
     {
         if (e.PropertyName == nameof(Settings.ThemeColor))
         {
+            if (!_updatingThemeColor)
+            {
+                var normalized = TryNormalizeHexColor(Settings.ThemeColor);
+                if (normalized != null && normalized != Settings.ThemeColor)
+                {
+                    _updatingThemeColor = true;
+                    Settings.ThemeColor = normalized; // triggers re-entry; SetThemeColor() runs there
+                    _updatingThemeColor = false;
+                    return;
+                }
+            }
             SetThemeColor();
         }
     }
 
+    /// <summary>
+    /// Returns the resolved absolute path if <paramref name="value"/> is a supported image
+    /// file (.jpg, .jpeg, .png) that exists on disk. Accepts both bare filenames (resolved
+    /// relative to the app directory) and absolute paths (e.g. from the file picker).
+    /// Returns null if the value is not a recognised image or the file does not exist.
+    /// </summary>
+    private static string? TryResolveImagePath(string? value)
+    {
+        if (value is null)
+            return null;
+
+        var ext = Path.GetExtension(value);
+        if (!ext.Equals(".jpg",  StringComparison.OrdinalIgnoreCase) &&
+            !ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) &&
+            !ext.Equals(".png",  StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        // Absolute path (e.g. selected via file dialog)
+        if (Path.IsPathRooted(value))
+            return File.Exists(value) ? value : null;
+
+        // Bare filename — resolve relative to app directory
+        var fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, value);
+        return File.Exists(fullPath) ? fullPath : null;
+    }
+
+    /// <summary>
+    /// Returns the normalized form "#XXXXXX" (uppercase) if <paramref name="value"/> is a
+    /// valid 6-digit hex color (with or without a leading '#'). Returns null otherwise.
+    /// </summary>
+    private static string? TryNormalizeHexColor(string? value)
+    {
+        if (value is null)
+            return null;
+
+        var hex = value.Trim();
+        if (hex.StartsWith("#"))
+            hex = hex.Substring(1);
+
+        if (hex.Length != 6)
+            return null;
+
+        hex = hex.ToUpperInvariant();
+
+        foreach (var c in hex)
+        {
+            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')))
+                return null;
+        }
+
+        return "#" + hex;
+    }
+
     private void SetThemeColor()
     {
+        // Priority 1: Image file (JPEG or PNG, relative filename or absolute path)
+        var imagePath = TryResolveImagePath(Settings.ThemeColor);
+        if (imagePath != null)
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                BackgroundPattern = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
+            }
+            catch
+            {
+                // Corrupt or unreadable image — fall back to default.
+                Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
+                BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
+            }
+
+            return;
+        }
+
+        // Priority 2: Exact 6-digit hex color — solid color background.
+        // This intentionally produces a flat SolidColorBrush, unlike named colors
+        // (Priority 3) which use the GenerateRandomBrush dot pattern. The visual
+        // distinction lets users choose between a clean solid fill and the textured look.
+        var hexColor = TryNormalizeHexColor(Settings.ThemeColor);
+        if (hexColor != null)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hexColor);
+            Application.Current.Resources["ThemeColor"] = color;
+            BackgroundPattern = new SolidColorBrush(color);
+            return;
+        }
+
+        // Priority 3: Named color (e.g. "SteelBlue") — dot pattern brush
         try
         {
             var themeColor = (Color)ColorConverter.ConvertFromString(Settings.ThemeColor);
@@ -385,4 +502,19 @@ public partial class MainWindow
             return false;
         }
     }
-}
+
+    private void ThemeColorBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select Background Image",
+            Filter = "Image Files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png",
+            InitialDirectory = AppDomain.CurrentDomain.BaseDirectory
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            Settings.ThemeColor = dialog.FileName;
+        }
+    }
+}
