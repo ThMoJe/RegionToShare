@@ -34,6 +34,7 @@ public partial class MainWindow
     private ImageBrush? _noiseAnimatedBrush;
     private BitmapSource[]? _noiseFrames;
     private int _noiseFrameIndex;
+    private bool _isWaitingMode;
 
     public MainWindow()
     {
@@ -284,6 +285,9 @@ public partial class MainWindow
 
     private void OnMouseLeftButtonDown()
     {
+        if (_isWaitingMode)
+            return;
+
         _debugOffset = Keyboard.Modifiers == (ModifierKeys.Alt | ModifierKeys.Control | ModifierKeys.Shift) ? new POINT(600, 300) : new POINT();
 
         if (_recordingWindow != null)
@@ -808,5 +812,54 @@ public partial class MainWindow
             var elapsed = -diff;
             CountdownTimerText = $"-{(int)elapsed.TotalHours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
         }
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+
+        if (e.Key == Key.Escape && _isWaitingMode)
+        {
+            ExitWaitingMode();
+            e.Handled = true;
+        }
+    }
+
+    private void WaitingMode_Click(object sender, RoutedEventArgs e)
+    {
+        EnterWaitingMode();
+    }
+
+    private void ExitWaitingMode_Click(object sender, RoutedEventArgs e)
+    {
+        ExitWaitingMode();
+    }
+
+    private void EnterWaitingMode()
+    {
+        if (_isWaitingMode || _recordingWindow != null)
+            return;
+
+        _isWaitingMode = true;
+        SettingsToolbar.Visibility = Visibility.Collapsed;
+        VersionLabel.Visibility = Visibility.Collapsed;
+        PlayButtonArea.Visibility = Visibility.Hidden;
+        ExitWaitingModeButton.Visibility = Visibility.Visible;
+
+        WindowStyle = WindowStyle.None;
+    }
+
+    private void ExitWaitingMode()
+    {
+        if (!_isWaitingMode)
+            return;
+
+        _isWaitingMode = false;
+        SettingsToolbar.Visibility = Visibility.Visible;
+        VersionLabel.Visibility = Visibility.Visible;
+        PlayButtonArea.Visibility = Visibility.Visible;
+        ExitWaitingModeButton.Visibility = Visibility.Collapsed;
+
+        WindowStyle = WindowStyle.ThreeDBorderWindow;
     }
 }

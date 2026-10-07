@@ -37,7 +37,7 @@
   </Window.Resources>
   <Grid DataContext="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}">
     <Grid x:Name="InfoArea" Background="{Binding BackgroundPattern}" ClipToBounds="True">
-      <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Orientation="Horizontal">
+      <StackPanel x:Name="SettingsToolbar" VerticalAlignment="Top" HorizontalAlignment="Left" Orientation="Horizontal">
         <StackPanel.Resources>
           <Style TargetType="Decorator" x:Key="Padding">
             <Setter Property="Width" Value="10" />
@@ -53,9 +53,9 @@
                   ToolTip="Theme color (select or enter color name / hex code)" />
         <Decorator Style="{StaticResource Padding}"/>
         <TextBox Text="{Binding LogoBackgroundImage, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
-                 MouseDoubleClick="LogoBackgroundImageBox_MouseDoubleClick"
-                 Width="110"
-                 ToolTip="Double-click to select logo image (.jpg, .png), or clear text to remove" />
+                  MouseDoubleClick="LogoBackgroundImageBox_MouseDoubleClick"
+                  Width="110"
+                  ToolTip="Double-click to select logo image (.jpg, .png), or clear text to remove" />
         <Decorator Style="{StaticResource Padding}"/>
         <ComboBox SelectedItem="{Binding FramesPerSecond, Source={x:Static properties:Settings.Default}}"
                   ItemStringFormat="{}{0} FPS"
@@ -79,8 +79,29 @@
         <CheckBox Content="Animate white noise"
                   VerticalAlignment="Center"
                   IsChecked="{Binding AnimateWhiteNoise, Source={x:Static properties:Settings.Default}}" />
+        <Decorator Style="{StaticResource Padding}"/>
+        <Button Content="Waiting mode"
+                Click="WaitingMode_Click"
+                VerticalAlignment="Center"
+                Padding="8,2"
+                ToolTip="Enter Waiting mode (clean countdown view)" />
       </StackPanel>
-      <TextBlock Text="{Binding Version}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="5,2" />
+      <!-- Small X button in top-right corner to exit Waiting mode -->
+      <Button x:Name="ExitWaitingModeButton"
+              Width="24" Height="24"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              Margin="0,6,6,0"
+              Visibility="Collapsed"
+              Click="ExitWaitingMode_Click"
+              ToolTip="Exit Waiting mode (Esc)"
+              Cursor="Hand">
+        <Path Width="10" Height="10"
+              Data="M1,1 L9,9 M1,9 L9,1"
+              Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+              StrokeThickness="1.5" />
+      </Button>
+      <TextBlock x:Name="VersionLabel" Text="{Binding Version}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="5,2" />
       <!-- Center area:
            Column 0: Space between left window border and play button (1*)
            Column 1: Play button centered in window (Auto)
@@ -108,7 +129,7 @@
                IsHitTestVisible="False" />
 
         <!-- Play button centered in the window -->
-        <Grid Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid x:Name="PlayButtonArea" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
           <Ellipse Width="128" Height="128"
                    Fill="{Binding Background, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}" />
           <Path Width="80" Height="80"
