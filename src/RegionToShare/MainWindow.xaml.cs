@@ -29,6 +29,7 @@ public partial class MainWindow
 
     private POINT _debugOffset;
     private bool _updatingThemeColor;
+    private DispatcherTimer? _countdownTimer;
 
     public MainWindow()
     {
@@ -37,13 +38,31 @@ public partial class MainWindow
         DataContext = this;
         Resolutions = LoadResolutions();
         Resources.RegisterDefaultStyles();
+        MigrateLegacySettings();
         SetThemeColor();
+        SetLogoBackgroundImage();
+        UpdateCountdownState();
         Settings.PropertyChanged += Settings_PropertyChanged;
     }
 
     public string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
     public ICollection<string> Resolutions { get; }
+
+    public static ICollection<string> SupportedThemeColors { get; } = new[]
+    {
+        "SteelBlue",
+        "Teal",
+        "DarkSlateGray",
+        "MidnightBlue",
+        "DimGray",
+        "ForestGreen",
+        "Crimson",
+        "DarkOrange",
+        "Purple",
+        "Coral",
+        "Gold"
+    };
 
     public static ICollection<int> SupportedFramesPerSecond { get; } = new[] { 5, 10, 15, 20, 30, 60 };
 
@@ -73,6 +92,54 @@ public partial class MainWindow
     }
     public static readonly DependencyProperty CustomImageProperty = DependencyProperty.Register(
         nameof(CustomImage), typeof(ImageSource), typeof(MainWindow), new PropertyMetadata(null));
+
+    public string CountdownLabel
+    {
+        get => (string)GetValue(CountdownLabelProperty);
+        set => SetValue(CountdownLabelProperty, value);
+    }
+    public static readonly DependencyProperty CountdownLabelProperty = DependencyProperty.Register(
+        nameof(CountdownLabel), typeof(string), typeof(MainWindow), new PropertyMetadata("Display countdown"));
+
+    public Visibility CountdownVisibility
+    {
+        get => (Visibility)GetValue(CountdownVisibilityProperty);
+        set => SetValue(CountdownVisibilityProperty, value);
+    }
+    public static readonly DependencyProperty CountdownVisibilityProperty = DependencyProperty.Register(
+        nameof(CountdownVisibility), typeof(Visibility), typeof(MainWindow), new PropertyMetadata(Visibility.Collapsed));
+
+    public string CountdownTitleText
+    {
+        get => (string)GetValue(CountdownTitleTextProperty);
+        set => SetValue(CountdownTitleTextProperty, value);
+    }
+    public static readonly DependencyProperty CountdownTitleTextProperty = DependencyProperty.Register(
+        nameof(CountdownTitleText), typeof(string), typeof(MainWindow), new PropertyMetadata(string.Empty));
+
+    public string CountdownTimerText
+    {
+        get => (string)GetValue(CountdownTimerTextProperty);
+        set => SetValue(CountdownTimerTextProperty, value);
+    }
+    public static readonly DependencyProperty CountdownTimerTextProperty = DependencyProperty.Register(
+        nameof(CountdownTimerText), typeof(string), typeof(MainWindow), new PropertyMetadata("00:00:00"));
+
+    public Brush CountdownTextBrush
+    {
+        get => (Brush)GetValue(CountdownTextBrushProperty);
+        set => SetValue(CountdownTextBrushProperty, value);
+    }
+    public static readonly DependencyProperty CountdownTextBrushProperty = DependencyProperty.Register(
+        nameof(CountdownTextBrush), typeof(Brush), typeof(MainWindow), new PropertyMetadata(Brushes.White));
+
+    public FontFamily CountdownFont
+    {
+        get => (FontFamily)GetValue(CountdownFontProperty);
+        set => SetValue(CountdownFontProperty, value);
+    }
+    public static readonly DependencyProperty CountdownFontProperty = DependencyProperty.Register(
+        nameof(CountdownFont), typeof(FontFamily), typeof(MainWindow), new PropertyMetadata(new FontFamily("Consolas")));
 
     private void OnExtendChanged(string? newValue)
     {
@@ -260,23 +327,20 @@ public partial class MainWindow
 
             settings.FramesPerSecond = SupportedFramesPerSecond.Contains(settings.FramesPerSecond) ? settings.FramesPerSecond : 15;
 
-            if (TryResolveImagePath(settings.ThemeColor) == null)
+            var normalized = TryNormalizeHexColor(settings.ThemeColor);
+            if (normalized != null)
             {
-                var normalized = TryNormalizeHexColor(settings.ThemeColor);
-                if (normalized != null)
+                settings.ThemeColor = normalized;
+            }
+            else
+            {
+                try
                 {
-                    settings.ThemeColor = normalized;
+                    ColorConverter.ConvertFromString(settings.ThemeColor);
                 }
-                else
+                catch
                 {
-                    try
-                    {
-                        ColorConverter.ConvertFromString(settings.ThemeColor);
-                    }
-                    catch
-                    {
-                        settings.ThemeColor = nameof(Colors.SteelBlue);
-                    }
+                    settings.ThemeColor = nameof(Colors.SteelBlue);
                 }
             }
 
@@ -296,6 +360,27 @@ public partial class MainWindow
         return false;
     }
 
+    private void MigrateLegacySettings()
+    {
+        try
+        {
+            // If ThemeColor held an image path from previous versions, migrate it to LogoBackgroundImage
+            if (TryResolveImagePath(Settings.ThemeColor) != null)
+            {
+                if (string.IsNullOrEmpty(Settings.LogoBackgroundImage))
+                {
+                    Settings.LogoBackgroundImage = Settings.ThemeColor;
+                }
+                Settings.ThemeColor = nameof(Colors.SteelBlue);
+                Settings.Save();
+            }
+        }
+        catch
+        {
+            // Ignore migration failure
+        }
+    }
+
     private void Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(Settings.ThemeColor))
@@ -313,6 +398,18 @@ public partial class MainWindow
             }
             SetThemeColor();
         }
+        else if (e.PropertyName == nameof(Settings.LogoBackgroundImage))
+        {
+            SetLogoBackgroundImage();
+        }
+        else if (e.PropertyName == nameof(Settings.DisplayCountdown)
+                 || e.PropertyName == nameof(Settings.CountdownTitle)
+                 || e.PropertyName == nameof(Settings.CountdownStartTime)
+                 || e.PropertyName == nameof(Settings.CountdownTextColor)
+                 || e.PropertyName == nameof(Settings.CountdownFontFamily))
+        {
+            UpdateCountdownState();
+        }
     }
 
     /// <summary>
@@ -323,7 +420,7 @@ public partial class MainWindow
     /// </summary>
     private static string? TryResolveImagePath(string? value)
     {
-        if (value is null)
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
         var ext = Path.GetExtension(value);
@@ -368,10 +465,9 @@ public partial class MainWindow
         return "#" + hex;
     }
 
-    private void SetThemeColor()
+    private void SetLogoBackgroundImage()
     {
-        // Priority 1: Image file (JPEG or PNG, relative filename or absolute path)
-        var imagePath = TryResolveImagePath(Settings.ThemeColor);
+        var imagePath = TryResolveImagePath(Settings.LogoBackgroundImage);
         if (imagePath != null)
         {
             try
@@ -383,25 +479,22 @@ public partial class MainWindow
                 bitmap.EndInit();
                 bitmap.Freeze();
                 CustomImage = bitmap;
-                BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
-                Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
+                return;
             }
             catch
             {
-                // Corrupt or unreadable image — fall back to default.
-                CustomImage = null;
-                Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
-                BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
+                // Corrupt or unreadable image — clear.
             }
-
-            return;
         }
 
         CustomImage = null;
+    }
 
-        // Priority 2: Exact 6-digit hex color — solid color background.
+    private void SetThemeColor()
+    {
+        // Priority 1: Exact 6-digit hex color — solid color background.
         // This intentionally produces a flat SolidColorBrush, unlike named colors
-        // (Priority 3) which use the GenerateRandomBrush dot pattern. The visual
+        // (Priority 2) which use the GenerateRandomBrush dot pattern. The visual
         // distinction lets users choose between a clean solid fill and the textured look.
         var hexColor = TryNormalizeHexColor(Settings.ThemeColor);
         if (hexColor != null)
@@ -412,7 +505,7 @@ public partial class MainWindow
             return;
         }
 
-        // Priority 3: Named color (e.g. "SteelBlue") — dot pattern brush
+        // Priority 2: Named color (e.g. "SteelBlue") — dot pattern brush
         try
         {
             var themeColor = (Color)ColorConverter.ConvertFromString(Settings.ThemeColor);
@@ -421,7 +514,9 @@ public partial class MainWindow
         }
         catch
         {
-            // Invalid color, ignore.
+            // Invalid color, fall back to default SteelBlue
+            Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
+            BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
         }
     }
 
@@ -515,18 +610,133 @@ public partial class MainWindow
         }
     }
 
-    private void ThemeColorBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void LogoBackgroundImageBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Background Image",
+            Title = "Select Logo Background Image",
             Filter = "Image Files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png",
             InitialDirectory = AppDomain.CurrentDomain.BaseDirectory
         };
 
         if (dialog.ShowDialog() == true)
         {
-            Settings.ThemeColor = dialog.FileName;
+            Settings.LogoBackgroundImage = dialog.FileName;
+        }
+    }
+
+    private void CountdownCheckBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+
+        if (Settings.DisplayCountdown)
+        {
+            // If currently enabled, clicking it un-enables it directly
+            Settings.DisplayCountdown = false;
+            Settings.Save();
+            return;
+        }
+
+        // If currently disabled, opening dialog
+        var dialog = new CountdownSettingsDialog(Settings.CountdownTitle, Settings.CountdownStartTime, Settings.CountdownTextColor, Settings.CountdownFontFamily)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            Settings.CountdownTitle = dialog.CountdownTitle;
+            Settings.CountdownStartTime = dialog.CountdownStartTime;
+            Settings.CountdownTextColor = dialog.CountdownTextColor;
+            Settings.CountdownFontFamily = dialog.CountdownFontFamily;
+            Settings.DisplayCountdown = true;
+            Settings.Save();
+        }
+    }
+
+    private void UpdateCountdownState()
+    {
+        if (Settings.DisplayCountdown)
+        {
+            CountdownLabel = Settings.CountdownStartTime;
+            CountdownVisibility = Visibility.Visible;
+            CountdownTitleText = Settings.CountdownTitle;
+
+            try
+            {
+                CountdownFont = new FontFamily(string.IsNullOrWhiteSpace(Settings.CountdownFontFamily) ? "Consolas" : Settings.CountdownFontFamily);
+            }
+            catch
+            {
+                CountdownFont = new FontFamily("Consolas");
+            }
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(Settings.CountdownTextColor);
+                CountdownTextBrush = new SolidColorBrush(color);
+            }
+            catch
+            {
+                CountdownTextBrush = Brushes.White;
+            }
+
+            if (_countdownTimer == null)
+            {
+                _countdownTimer = new DispatcherTimer(DispatcherPriority.Normal)
+                {
+                    Interval = TimeSpan.FromSeconds(1)
+                };
+                _countdownTimer.Tick += (_, _) => UpdateCountdownTimerDisplay();
+            }
+
+            UpdateCountdownTimerDisplay();
+            if (!_countdownTimer.IsEnabled)
+            {
+                _countdownTimer.Start();
+            }
+        }
+        else
+        {
+            CountdownLabel = "Display countdown";
+            CountdownVisibility = Visibility.Collapsed;
+            _countdownTimer?.Stop();
+        }
+    }
+
+    private void UpdateCountdownTimerDisplay()
+    {
+        if (!Settings.DisplayCountdown)
+            return;
+
+        var timeStr = Settings.CountdownStartTime ?? "12:00";
+        var parts = timeStr.Split(':');
+        if (!int.TryParse(parts[0], out var hours) || !int.TryParse(parts.Length > 1 ? parts[1] : "0", out var minutes))
+        {
+            CountdownTimerText = "00:00:00";
+            return;
+        }
+
+        var now = DateTime.Now;
+        var target = new DateTime(now.Year, now.Month, now.Day, hours, minutes, 0);
+
+        // If the start time is earlier than now and we just started, check if it was meant for tomorrow
+        // Only if it's earlier by more than 12 hours or configured earlier than today's launch:
+        // As specified: If specified HH:MM is earlier than current time, treat it as tomorrow's date at HH:MM
+        if (target < now.AddSeconds(-3600)) // If it passed more than an hour ago, treat as next day
+        {
+            target = target.AddDays(1);
+        }
+
+        var diff = target - now;
+        if (diff.TotalSeconds >= 0)
+        {
+            CountdownTimerText = $"{(int)diff.TotalHours:D2}:{diff.Minutes:D2}:{diff.Seconds:D2}";
+        }
+        else
+        {
+            var elapsed = -diff;
+            CountdownTimerText = $"-{(int)elapsed.TotalHours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
         }
     }
 }

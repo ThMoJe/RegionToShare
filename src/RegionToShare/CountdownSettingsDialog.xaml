@@ -1,0 +1,121 @@
+<Window x:Class="RegionToShare.CountdownSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:styles="urn:TomsToolbox.Wpf.Styles"
+        mc:Ignorable="d"
+        Title="Countdown Settings"
+        Height="310" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#252526" Foreground="#F1F1F1"
+        WindowStyle="SingleBorderWindow">
+  <Window.Resources>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightLightBrushKey}" Color="#333337" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#464646" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#252526" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="#686868" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkDarkBrushKey}" Color="#9E9E9E" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#F1F1F1" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#999999" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="{DynamicResource ThemeColor}" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HotTrackBrushKey}" Color="{DynamicResource ThemeColor}" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}" Color="#F1F1F1" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoBrushKey}" Color="#252526" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#1B1B1C" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBarBrushKey}" Color="#1B1B1C" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#F1F1F1" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#333337" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#F1F1F1" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ActiveCaptionBrushKey}" Color="#2D2D30" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ActiveBorderBrushKey}" Color="{DynamicResource ThemeColor}" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ActiveCaptionTextBrushKey}" Color="#F1F1F1" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveCaptionBrushKey}" Color="#2D2D30" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveBorderBrushKey}" Color="#434346" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveCaptionTextBrushKey}" Color="#808080" />
+    <SolidColorBrush x:Key="{x:Static styles:ResourceKeys.BorderBrush}" Color="#3F3F46" />
+    <SolidColorBrush x:Key="{x:Static styles:ResourceKeys.AccentDarkBrush}" Color="{DynamicResource ThemeColor}" />
+    <SolidColorBrush x:Key="{x:Static styles:ResourceKeys.DisabledBrush}" Color="#2D2D30" />
+  </Window.Resources>
+  <Grid Margin="16">
+    <Grid.Resources>
+      <Style TargetType="TextBox">
+        <Setter Property="Background" Value="#1E1E1E" />
+        <Setter Property="Foreground" Value="#F1F1F1" />
+        <Setter Property="BorderBrush" Value="#3F3F46" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+      </Style>
+      <Style TargetType="Button">
+        <Setter Property="Background" Value="#333337" />
+        <Setter Property="Foreground" Value="#F1F1F1" />
+        <Setter Property="BorderBrush" Value="#555555" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Style.Triggers>
+          <Trigger Property="IsMouseOver" Value="True">
+            <Setter Property="Background" Value="#3E3E42" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeColor}" />
+          </Trigger>
+          <Trigger Property="IsPressed" Value="True">
+            <Setter Property="Background" Value="#007ACC" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+          </Trigger>
+        </Style.Triggers>
+      </Style>
+    </Grid.Resources>
+
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="12" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="12" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="12" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="90" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Title -->
+    <TextBlock Grid.Row="0" Grid.Column="0" Text="Title:" VerticalAlignment="Center" FontWeight="SemiBold" />
+    <TextBox Grid.Row="0" Grid.Column="1" x:Name="TitleTextBox" Height="28" />
+
+    <!-- Start Time -->
+    <TextBlock Grid.Row="2" Grid.Column="0" Text="Start time:" VerticalAlignment="Center" FontWeight="SemiBold" />
+    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+      <ComboBox x:Name="HoursComboBox" Width="60" Height="28" />
+      <TextBlock Text=":" VerticalAlignment="Center" Margin="6,0" FontWeight="Bold" FontSize="14" />
+      <ComboBox x:Name="MinutesComboBox" Width="60" Height="28" />
+      <TextBlock Text="(HH:MM 24h)" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#888888" FontSize="11" />
+    </StackPanel>
+
+    <!-- Text Color -->
+    <TextBlock Grid.Row="4" Grid.Column="0" Text="Text Color:" VerticalAlignment="Center" FontWeight="SemiBold" />
+    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+      <TextBox x:Name="ColorTextBox" Width="90" Height="28" TextChanged="ColorTextBox_TextChanged" />
+      <Border x:Name="ColorPreviewBorder" Width="28" Height="28" Margin="8,0,0,0" BorderBrush="#555555" BorderThickness="1" CornerRadius="3" />
+      <Button Margin="8,0,0,0" Width="36" Height="28" Click="ColorPickerButton_Click" ToolTip="Pick color from palette">
+        <Path Width="16" Height="16" Stretch="Uniform" Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"
+              Data="M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A1.5,1.5 0 0,0 13.5,19.5C13.5,19.11 13.35,18.76 13.11,18.5C12.88,18.23 12.73,17.88 12.73,17.5A1.5,1.5 0 0,1 14.23,16H16A5,5 0 0,0 21,11C21,6.58 16.97,3 12,3M6.5,12A1.5,1.5 0 1,1 8,10.5A1.5,1.5 0 0,1 6.5,12M9.5,8A1.5,1.5 0 1,1 11,6.5A1.5,1.5 0 0,1 9.5,8M14.5,8A1.5,1.5 0 1,1 16,6.5A1.5,1.5 0 0,1 14.5,8M17.5,12A1.5,1.5 0 1,1 19,10.5A1.5,1.5 0 0,1 17.5,12Z" />
+      </Button>
+    </StackPanel>
+
+    <!-- Font Family -->
+    <TextBlock Grid.Row="6" Grid.Column="0" Text="Font:" VerticalAlignment="Center" FontWeight="SemiBold" />
+    <ComboBox Grid.Row="6" Grid.Column="1" x:Name="FontFamilyComboBox" Height="28" Width="180" HorizontalAlignment="Left" />
+
+    <!-- Buttons -->
+    <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Content="Save" Width="80" Height="28" Click="SaveButton_Click" IsDefault="True" Margin="0,0,8,0" />
+      <Button Content="Cancel" Width="80" Height="28" Click="CancelButton_Click" IsCancel="True" />
+    </StackPanel>
+  </Grid>
+</Window>

@@ -37,11 +37,6 @@
   </Window.Resources>
   <Grid DataContext="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}">
     <Grid x:Name="InfoArea" Background="{Binding BackgroundPattern}" ClipToBounds="True">
-      <Image Source="{Binding CustomImage}"
-             Stretch="None"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center"
-             IsHitTestVisible="False" />
       <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Orientation="Horizontal">
         <StackPanel.Resources>
           <Style TargetType="Decorator" x:Key="Padding">
@@ -52,9 +47,15 @@
                   ItemsSource="{Binding Resolutions}"
                   Width="90" IsEditable="True" />
         <Decorator Style="{StaticResource Padding}"/>
-        <TextBox Text="{Binding ThemeColor, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
-                 MouseDoubleClick="ThemeColorBox_MouseDoubleClick"
-                 Width="90" />
+        <ComboBox Text="{Binding ThemeColor, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
+                  ItemsSource="{Binding SupportedThemeColors}"
+                  Width="105" IsEditable="True"
+                  ToolTip="Theme color (select or enter color name / hex code)" />
+        <Decorator Style="{StaticResource Padding}"/>
+        <TextBox Text="{Binding LogoBackgroundImage, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
+                 MouseDoubleClick="LogoBackgroundImageBox_MouseDoubleClick"
+                 Width="110"
+                 ToolTip="Double-click to select logo image (.jpg, .png), or clear text to remove" />
         <Decorator Style="{StaticResource Padding}"/>
         <ComboBox SelectedItem="{Binding FramesPerSecond, Source={x:Static properties:Settings.Default}}"
                   ItemStringFormat="{}{0} FPS"
@@ -68,18 +69,72 @@
         <CheckBox Content="Start activated"
                   VerticalAlignment="Center"
                   IsChecked="{Binding StartActivated, Source={x:Static properties:Settings.Default}}" />
+        <Decorator Style="{StaticResource Padding}"/>
+        <CheckBox x:Name="CountdownCheckBox"
+                  Content="{Binding CountdownLabel}"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding DisplayCountdown, Source={x:Static properties:Settings.Default}, Mode=OneWay}"
+                  PreviewMouseDown="CountdownCheckBox_PreviewMouseDown" />
       </StackPanel>
       <TextBlock Text="{Binding Version}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="5,2" />
-      <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+      <!-- Center area:
+           Column 0: Space between left window border and play button (1*)
+           Column 1: Play button centered in window (Auto)
+           Column 2: Space between play button and right window border (1*)
+           This guarantees the logo in Column 0 is perfectly centered in the left space,
+           and the countdown in Column 2 is perfectly centered in the right space. -->
+      <Grid VerticalAlignment="Center" HorizontalAlignment="Stretch">
         <Grid.RowDefinitions>
           <RowDefinition Height="1*" />
           <RowDefinition Height="2*" />
         </Grid.RowDefinitions>
-        <Ellipse Grid.Row="1" Width="128" Height="128"
-                 Fill="{Binding Background, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}" />
-        <Path Grid.Row="1" Width="80" Height="80"
-              Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"
-              Data="M 20,0 L80,40 L20,80 Z" />
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Logo is centered in the space between the left window border and the play button -->
+        <Image Grid.Row="1" Grid.Column="0"
+               Source="{Binding CustomImage}"
+               Width="256"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               IsHitTestVisible="False" />
+
+        <!-- Play button centered in the window -->
+        <Grid Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Ellipse Width="128" Height="128"
+                   Fill="{Binding Background, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}" />
+          <Path Width="80" Height="80"
+                Fill="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}"
+                Data="M 20,0 L80,40 L20,80 Z" />
+        </Grid>
+
+        <!-- Countdown display centered in the space between the play button and the right window border -->
+        <StackPanel Grid.Row="1" Grid.Column="2"
+                    Width="256"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding CountdownVisibility}">
+          <Viewbox Width="256" Stretch="Uniform" StretchDirection="DownOnly" Margin="0,0,0,10">
+            <TextBlock Text="{Binding CountdownTitleText}"
+                       Foreground="{Binding CountdownTextBrush}"
+                       FontFamily="{Binding CountdownFont}"
+                       TextAlignment="Center"
+                       FontWeight="SemiBold"
+                       FontSize="26" />
+          </Viewbox>
+          <Viewbox Width="256" Stretch="Uniform" StretchDirection="Both">
+            <TextBlock Text="{Binding CountdownTimerText}"
+                       Foreground="{Binding CountdownTextBrush}"
+                       FontFamily="{Binding CountdownFont}"
+                       TextAlignment="Center"
+                       FontWeight="Bold"
+                       FontSize="64" />
+          </Viewbox>
+        </StackPanel>
       </Grid>
     </Grid>
     <Image x:Name="RenderTarget" Visibility="Hidden" MouseDown="SubLayer_MouseDown" />

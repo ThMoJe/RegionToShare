@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="RegionToShare.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
@@ -16,6 +16,24 @@
     </Setting>
     <Setting Name="StartActivated" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="LogoBackgroundImage" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="DisplayCountdown" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="CountdownTitle" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Title of session</Value>
+    </Setting>
+    <Setting Name="CountdownStartTime" Type="System.String" Scope="User">
+      <Value Profile="(Default)">12:00</Value>
+    </Setting>
+    <Setting Name="CountdownTextColor" Type="System.String" Scope="User">
+      <Value Profile="(Default)">#FFFFFF</Value>
+    </Setting>
+    <Setting Name="CountdownFontFamily" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Consolas</Value>
     </Setting>
   </Settings>
 </SettingsFile>
