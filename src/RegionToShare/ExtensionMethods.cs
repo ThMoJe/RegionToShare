@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
@@ -91,9 +91,10 @@ namespace RegionToShare
         }
 
         private const int PatternSize = 128;
+        public const int NoiseFrameCount = 8;
 
         public static Brush GenerateRandomBrush(Color themeColor) =>
-            new ImageBrush(GenerateColoredDots(PatternSize, PatternSize, themeColor))
+            new ImageBrush(GenerateColoredDots(PatternSize, PatternSize, themeColor, 0))
             {
                 Opacity = 0.4,
                 Viewport = new Rect(0, 0, PatternSize, PatternSize),
@@ -102,9 +103,19 @@ namespace RegionToShare
                 Stretch = Stretch.None,
             };
 
-        private static BitmapSource GenerateColoredDots(int resX, int resY, Color color)
+        public static BitmapSource[] GenerateNoiseFrames(Color color, int frameCount = NoiseFrameCount)
         {
-            var random = new Random(0);
+            var frames = new BitmapSource[frameCount];
+            for (var i = 0; i < frameCount; i++)
+            {
+                frames[i] = GenerateColoredDots(PatternSize, PatternSize, color, i);
+            }
+            return frames;
+        }
+
+        private static BitmapSource GenerateColoredDots(int resX, int resY, Color color, int seed)
+        {
+            var random = new Random(seed);
 
             var bytesPerRow = resX * 3; // Rgb24
 
@@ -120,6 +131,7 @@ namespace RegionToShare
 
             var wb = new WriteableBitmap(resX, resY, 96.0, 96.0, PixelFormats.Rgb24, null);
             wb.WritePixels(new Int32Rect(0, 0, resX, resY), pixels, bytesPerRow, 0);
+            wb.Freeze();
             return wb;
         }
     }

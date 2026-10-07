@@ -154,5 +154,17 @@ namespace RegionToShare.Properties {
                 this["CountdownFontFamily"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool AnimateWhiteNoise {
+            get {
+                return ((bool)(this["AnimateWhiteNoise"]));
+            }
+            set {
+                this["AnimateWhiteNoise"] = value;
+            }
+        }
     }
 }

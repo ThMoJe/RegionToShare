@@ -30,6 +30,10 @@ public partial class MainWindow
     private POINT _debugOffset;
     private bool _updatingThemeColor;
     private DispatcherTimer? _countdownTimer;
+    private DispatcherTimer? _noiseAnimationTimer;
+    private ImageBrush? _noiseAnimatedBrush;
+    private BitmapSource[]? _noiseFrames;
+    private int _noiseFrameIndex;
 
     public MainWindow()
     {
@@ -285,6 +289,7 @@ public partial class MainWindow
         if (_recordingWindow != null)
             return;
 
+        StopNoiseAnimation();
         InfoArea.Visibility = Visibility.Collapsed;
         RenderTarget.Visibility = Visibility.Visible;
 
@@ -311,6 +316,7 @@ public partial class MainWindow
 
             NativeWindowRect += GlassFrameThickness;
 
+            StartNoiseAnimation();
             BringToFront();
         };
 
@@ -410,6 +416,17 @@ public partial class MainWindow
         {
             UpdateCountdownState();
         }
+        else if (e.PropertyName == nameof(Settings.AnimateWhiteNoise))
+        {
+            if (Settings.AnimateWhiteNoise)
+            {
+                StartNoiseAnimation();
+            }
+            else
+            {
+                StopNoiseAnimation();
+            }
+        }
     }
 
     /// <summary>
@@ -494,30 +511,83 @@ public partial class MainWindow
     {
         // Priority 1: Exact 6-digit hex color — solid color background.
         // This intentionally produces a flat SolidColorBrush, unlike named colors
-        // (Priority 2) which use the GenerateRandomBrush dot pattern. The visual
-        // distinction lets users choose between a clean solid fill and the textured look.
+        // (Priority 2) which use the animated static noise pattern.
         var hexColor = TryNormalizeHexColor(Settings.ThemeColor);
         if (hexColor != null)
         {
+            StopNoiseAnimation();
             var color = (Color)ColorConverter.ConvertFromString(hexColor);
             Application.Current.Resources["ThemeColor"] = color;
             BackgroundPattern = new SolidColorBrush(color);
             return;
         }
 
-        // Priority 2: Named color (e.g. "SteelBlue") — dot pattern brush
+        // Priority 2: Named color (e.g. "SteelBlue") — animated TV static noise pattern
+        Color themeColor;
         try
         {
-            var themeColor = (Color)ColorConverter.ConvertFromString(Settings.ThemeColor);
-            Application.Current.Resources["ThemeColor"] = themeColor;
-            BackgroundPattern = GenerateRandomBrush(themeColor);
+            themeColor = (Color)ColorConverter.ConvertFromString(Settings.ThemeColor);
         }
         catch
         {
-            // Invalid color, fall back to default SteelBlue
-            Application.Current.Resources["ThemeColor"] = Colors.SteelBlue;
-            BackgroundPattern = GenerateRandomBrush(Colors.SteelBlue);
+            themeColor = Colors.SteelBlue;
         }
+
+        Application.Current.Resources["ThemeColor"] = themeColor;
+        SetupNoiseAnimation(themeColor);
+    }
+
+    private void SetupNoiseAnimation(Color color)
+    {
+        _noiseFrames = GenerateNoiseFrames(color, NoiseFrameCount);
+        _noiseFrameIndex = 0;
+
+        _noiseAnimatedBrush = new ImageBrush(_noiseFrames[0])
+        {
+            Opacity = 0.4,
+            Viewport = new Rect(0, 0, 128, 128),
+            ViewportUnits = BrushMappingMode.Absolute,
+            TileMode = TileMode.Tile,
+            Stretch = Stretch.None
+        };
+
+        BackgroundPattern = _noiseAnimatedBrush;
+        StartNoiseAnimation();
+    }
+
+    private void StartNoiseAnimation()
+    {
+        if (!Settings.AnimateWhiteNoise)
+            return;
+
+        if (_noiseFrames == null || _noiseFrames.Length == 0 || _noiseAnimatedBrush == null)
+            return;
+
+        if (_noiseAnimationTimer == null)
+        {
+            _noiseAnimationTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(50) // ~20 FPS vintage CRT static rate
+            };
+            _noiseAnimationTimer.Tick += (_, _) =>
+            {
+                if (_noiseFrames != null && _noiseAnimatedBrush != null)
+                {
+                    _noiseFrameIndex = (_noiseFrameIndex + 1) % _noiseFrames.Length;
+                    _noiseAnimatedBrush.ImageSource = _noiseFrames[_noiseFrameIndex];
+                }
+            };
+        }
+
+        if (!_noiseAnimationTimer.IsEnabled)
+        {
+            _noiseAnimationTimer.Start();
+        }
+    }
+
+    private void StopNoiseAnimation()
+    {
+        _noiseAnimationTimer?.Stop();
     }
 
     protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)

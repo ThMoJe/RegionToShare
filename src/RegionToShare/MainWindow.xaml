@@ -75,6 +75,10 @@
                   VerticalAlignment="Center"
                   IsChecked="{Binding DisplayCountdown, Source={x:Static properties:Settings.Default}, Mode=OneWay}"
                   PreviewMouseDown="CountdownCheckBox_PreviewMouseDown" />
+        <Decorator Style="{StaticResource Padding}"/>
+        <CheckBox Content="Animate white noise"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding AnimateWhiteNoise, Source={x:Static properties:Settings.Default}}" />
       </StackPanel>
       <TextBlock Text="{Binding Version}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="5,2" />
       <!-- Center area:
