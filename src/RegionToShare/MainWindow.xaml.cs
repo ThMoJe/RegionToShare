@@ -35,6 +35,10 @@ public partial class MainWindow
     private BitmapSource[]? _noiseFrames;
     private int _noiseFrameIndex;
     private bool _isWaitingMode;
+    private Window? _separationLayerWindow;
+    private bool _wallpaperActive;
+    private BitmapSource? _wallpaperBitmap;
+    private System.Drawing.Rectangle _wallpaperScreenBounds;
 
     public MainWindow()
     {
@@ -220,6 +224,7 @@ public partial class MainWindow
             Height = 10
         };
 
+        _separationLayerWindow = separationLayerWindow;
         separationLayerWindow.MouseDown += SubLayer_MouseDown;
         BindingOperations.SetBinding(separationLayerWindow, BackgroundProperty, new Binding(nameof(BackgroundPattern)) { Source = this });
 
@@ -291,17 +296,40 @@ public partial class MainWindow
         _debugOffset = Keyboard.Modifiers == (ModifierKeys.Alt | ModifierKeys.Control | ModifierKeys.Shift) ? new POINT(600, 300) : new POINT();
 
         if (_recordingWindow != null)
-            return;
+        {
+            // Without transparency the info area stays visible, so a click on it must still send the window back.
+            if (!Settings.TransparentWhenActive)
+                this.BeginInvoke(DispatcherPriority.Background, SendToBack);
 
-        StopNoiseAnimation();
-        InfoArea.Visibility = Visibility.Collapsed;
-        RenderTarget.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (Settings.TransparentWhenActive)
+        {
+            StopNoiseAnimation();
+            InfoArea.Visibility = Visibility.Collapsed;
+            RenderTarget.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            // Keep showing the background, logo and countdown; hide only the controls.
+            SettingsToolbar.Visibility = Visibility.Collapsed;
+            VersionLabel.Visibility = Visibility.Collapsed;
+            PlayButtonArea.Visibility = Visibility.Hidden;
+        }
 
         ValidateSettings();
 
         _recordingWindow = new RecordingWindow(RenderTarget, Settings.DrawShadowCursor, Settings.FramesPerSecond, _debugOffset);
 
         NativeWindowRect -= GlassFrameThickness;
+
+        if (Settings.TransparentWhenActive)
+        {
+            // The separation layer sits on top of the bare desktop; show the wallpaper there instead of the noise.
+            _wallpaperActive = true;
+            UpdateSeparationLayerWallpaper();
+        }
 
         _recordingWindow.SourceInitialized += (_, _) =>
         {
@@ -313,10 +341,15 @@ public partial class MainWindow
         {
             InfoArea.Visibility = Visibility.Visible;
             RenderTarget.Visibility = Visibility.Hidden;
+            SettingsToolbar.Visibility = Visibility.Visible;
+            VersionLabel.Visibility = Visibility.Visible;
+            PlayButtonArea.Visibility = Visibility.Visible;
             WindowStyle = WindowStyle.ThreeDBorderWindow;
             ResizeMode = ResizeMode.CanResize;
 
             _recordingWindow = null;
+
+            RestoreSeparationLayerBackground();
 
             NativeWindowRect += GlassFrameThickness;
 
@@ -632,6 +665,50 @@ public partial class MainWindow
         Extend = rect.Width + "x" + rect.Height;
 
         SetSeparationLayerPos(SWP_NOACTIVATE | SWP_NOZORDER);
+
+        if (_wallpaperActive)
+            UpdateSeparationLayerWallpaper();
+    }
+
+    private void UpdateSeparationLayerWallpaper()
+    {
+        if (_separationLayerWindow == null)
+            return;
+
+        var rect = NativeWindowRect - _debugOffset;
+        if (rect.Width <= 0 || rect.Height <= 0)
+            return;
+
+        var screenBounds = System.Windows.Forms.Screen
+            .FromRectangle(new System.Drawing.Rectangle(rect.Left, rect.Top, rect.Width, rect.Height))
+            .Bounds;
+
+        if (_wallpaperBitmap == null || _wallpaperScreenBounds != screenBounds)
+        {
+            _wallpaperBitmap = WallpaperHelper.Render(screenBounds.Width, screenBounds.Height);
+            _wallpaperScreenBounds = screenBounds;
+        }
+
+        if (_wallpaperBitmap == null)
+            return; // keep the default background
+
+        _separationLayerWindow.Background = new ImageBrush(_wallpaperBitmap)
+        {
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(rect.Left - screenBounds.Left, rect.Top - screenBounds.Top, rect.Width, rect.Height),
+            Stretch = Stretch.Fill
+        };
+    }
+
+    private void RestoreSeparationLayerBackground()
+    {
+        _wallpaperActive = false;
+        _wallpaperBitmap = null;
+
+        if (_separationLayerWindow != null)
+        {
+            BindingOperations.SetBinding(_separationLayerWindow, BackgroundProperty, new Binding(nameof(BackgroundPattern)) { Source = this });
+        }
     }
 
     private void SubLayer_MouseDown(object sender, MouseButtonEventArgs e)

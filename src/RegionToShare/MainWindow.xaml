@@ -52,6 +52,11 @@
                   Width="105" IsEditable="True"
                   ToolTip="Theme color (select or enter color name / hex code)" />
         <Decorator Style="{StaticResource Padding}"/>
+        <CheckBox Content="Transparent when active"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding TransparentWhenActive, Source={x:Static properties:Settings.Default}}"
+                  ToolTip="Checked: the shared window shows your desktop region when active. Unchecked: it keeps showing the background, logo and countdown." />
+        <Decorator Style="{StaticResource Padding}"/>
         <TextBox Text="{Binding LogoBackgroundImage, Source={x:Static properties:Settings.Default}, UpdateSourceTrigger=PropertyChanged}"
                   MouseDoubleClick="LogoBackgroundImageBox_MouseDoubleClick"
                   Width="110"

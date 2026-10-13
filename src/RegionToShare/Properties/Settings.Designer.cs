@@ -166,5 +166,17 @@ namespace RegionToShare.Properties {
                 this["AnimateWhiteNoise"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool TransparentWhenActive {
+            get {
+                return ((bool)(this["TransparentWhenActive"]));
+            }
+            set {
+                this["TransparentWhenActive"] = value;
+            }
+        }
     }
 }
